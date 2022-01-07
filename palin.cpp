@@ -1,70 +1,138 @@
 #include<bits/stdc++.h>
-#define ON(x, i) (x | (1 << i))
-#define MASK(i) (1 << i)
 #define int long long
 #define NAME "palin"
 using namespace std;
 
-const int MAX = 1e4 + 7;
-const int N = (1 << 13);
-const int base = 29;
-const int inf = 1e9;
+const int MAX = 1e18;
+const int N = 1e5 + 7;
+
+int n, k;
+int mem[N][2][2];
 
 string s;
-int n, k, res = inf;
-int a[13], dp[MAX][N];
-int hashL[MAX], hashR[MAX], pw[MAX];
+int midOdd, midEven;
+vector<int> Odd, Even;
 
-bool isPalin(int l, int r) {
-	int hL = hashL[r] - hashL[l - 1] * pw[r - l + 1];
-	int hR = hashR[l] - hashR[r + 1] * pw[r - l + 1];
-	return (hL == hR);
+int add(int x, int y) {
+	if(max(x, y) > MAX) return MAX + 1;
+	if((x += y) > MAX) return MAX;
+	return x;
+}
+ 
+int dp(int i, bool palinOdd, bool palinEven) {
+	if(i > n) return (palinOdd | palinEven);
+	int &res = mem[i][palinOdd][palinEven];
+	if(res != -1) return res;
+
+	res = 0LL;
+	int mid = (i & 1) ? midOdd : midEven;
+
+	if(i <= mid) res = add(res, 2LL * dp(i + 1, palinOdd, palinEven));
+	else {
+		res = add(res, dp(i + 1, palinOdd, palinEven));
+		if(i & 1) res = add(res, dp(i + 1, 0, palinEven));
+		else res = add(res, dp(i + 1, palinOdd, 0));
+	} return res;
 }
 
-void maximize(int &x, int y) { x = max(x, y); }
-void minimize(int &x, int y) { x = min(x, y); }
+void trace(int i, bool palinOdd, bool palinEven, int cnt) {
+	if(i > n) return;
 
-void load() {
-	cin >> s >> k;
-	for(int i = 0; i < k; ++i) cin >> a[i];
+	int res = 0;
+	int mid = (i & 1) ? midOdd : midEven;
 
-	n = (int)s.size();
-	s = " " + s;
+	if(i <= mid) {
+		if(add(res, dp(i + 1, palinOdd, palinEven)) >= cnt) {
+			s[i] = '0';
+			trace(i + 1, palinOdd, palinEven, cnt);
+ 		} else {
+ 			s[i] = '1';
+ 			res = add(res, dp(i + 1, palinOdd, palinEven));
+ 			trace(i + 1, palinOdd, palinEven, cnt - res);
+ 		}
+	} else {
+		char c;
 
-	pw[0] = 1;
-	for(int i = 1; i <= n; ++i) {
-		pw[i] = pw[i - 1] * base;
-		hashL[i] = hashL[i - 1] * base + s[i] - 96;
-	} for(int i = n; i >= 1; --i)
-		hashR[i] = hashR[i + 1] * base + s[i] - 96;
-}
-
-void process() {
-	for(int i = 1; i <= n; ++i) {
-		for(int j = 0; j < k; ++j) 
-			if(i >= a[j] && isPalin(i - a[j] + 1, i)) {
-				dp[i][MASK(j)] = i - a[j] + 1;
-				for(int mask = 0; mask < MASK(k); ++mask) 
-					maximize(dp[i][ON(mask, j)], dp[i - a[j]][mask]); 
-			}
-
-		for(int mask = 0; mask < MASK(k); ++mask) 
-			maximize(dp[i][mask], dp[i - 1][mask]);
+		if(i & 1) {
+			int p = (int)Odd.size() + 1 - (i + 1) / 2;
+			c = s[Odd[--p]];
+		} else {
+			int p = (int)Even.size() + 1 - (i + 1) / 2;
+			c = s[Even[--p]];
+		}
 		
-		if(dp[i][MASK(k) - 1] > 0)
-			minimize(res, i - dp[i][MASK(k) - 1] + 1);
-	} cout << ((res == inf) ? (-1) : (res));
+		if(c == '0') {
+			if(add(res, dp(i + 1, palinOdd, palinEven)) >= cnt) {
+				s[i] = '0';
+				trace(i + 1, palinOdd, palinEven, cnt);
+			} else {
+				s[i] = '1';
+				res = add(res, dp(i + 1, palinOdd, palinEven));
+
+				if(i & 1) trace(i + 1, 0, palinEven, cnt - res);
+				else trace(i + 1, palinOdd, 0, cnt - res);
+			}
+		} else {
+			if(i & 1) {
+				if(add(res, dp(i + 1, 0, palinEven) >= cnt)) {
+					s[i] = '0';
+					trace(i + 1, 0, palinEven, cnt);
+					return;
+				} res = add(res, dp(i + 1, 0, palinEven));
+			} else {
+				if(add(res, dp(i + 1, palinOdd, 0) >= cnt)) {
+					s[i] = '0';
+					trace(i + 1, palinOdd, 0, cnt);
+					return;
+				} res = add(res, dp(i + 1, palinOdd, 0));
+			} 
+
+			if(add(res, dp(i + 1, palinOdd, palinEven)) >= cnt) {
+				s[i] = '1';
+				trace(i + 1, palinOdd, palinEven, cnt - res);
+			}
+		}
+	}
+}
+
+void solve() {
+	cin >> n >> k;
+	if(n == 1) {
+		if(k == 1) cout << "0\n";
+		if(k == 2) cout << "1\n";
+		if(k > 2) cout << "NOT FOUND!\n";
+		return ;
+	}
+
+	memset(mem, -1LL, sizeof(mem));
+	Odd.clear(), Even.clear();
+
+	for(int i = 1; i <= n; i += 2) Odd.push_back(i);
+	for(int i = 2; i <= n; i += 2) Even.push_back(i);
+
+	midOdd = Odd[((int)Odd.size() - 1) / 2];
+	midEven = Even[((int)Even.size() - 1) / 2];
+
+	int ans = dp(1, 1, 1);
+	if(k > ans) cout << "NOT FOUND!\n";
+	else {
+		s.assign(n + 1, '0');
+		trace(1, 1, 1, k);
+
+		for(int i = 1; i <= n; ++i) cout << s[i];
+		cout << "\n";
+	}
 }
 
 int32_t main() {
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL), cout.tie(NULL);
 
-	freopen(NAME".inp", "r", stdin);
-	freopen(NAME".out", "w", stdout);
+    freopen(NAME".inp", "r", stdin);
+    freopen(NAME".out", "w", stdout);
 
-	load();
-	process();
+    int t;	cin >> t;
+    while(t--) solve();
 
 	return 0;
 }
