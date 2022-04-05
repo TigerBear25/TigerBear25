@@ -1,6 +1,6 @@
-- 👋 Hi, I’m @TigerBear25
-- 👀 I’m interested in BubbleTea
-- 🌱 I’m currently learning C++
+- 👋 Hi, I’m @TigerBear
+- 👀 My hobby is VolleyBall
+- 🌱 I'm a CQT Coder
 
 <!---
 TigerBear25/TigerBear25 is a ✨ special ✨ repository because its `README.md` (this file) appears on your GitHub profile.
